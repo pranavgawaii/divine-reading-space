@@ -1,30 +1,42 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   console.log('[API] Fetching pending payments...')
   try {
-    const supabase = await createClient()
-
-    // 1. Check User
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      console.error('[API] Auth Error:', authError)
+    // 1. Check Auth (Clerk)
+    const { userId: clerkUserId } = auth()
+    if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.log('[API] User:', user.id)
 
-    // 2. Check Admin Role (Optional but recommended)
-    // const { data: admin } = await supabase.from('admin_users').select('role').eq('user_id', user.id).single()
-    // if (!admin) {
-    //    console.error('[API] Not an admin')
-    //    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    // }
+    // 2. Initialize Admin Client
+    const supabase = await createAdminClient()
 
-    // 3. Fetch Payments
+    // 3. Verify Admin Role (Use Clerk ID to find Profile -> Admin User)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('clerk_user_id', clerkUserId)
+      .single()
+
+    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+    const { data: admin } = await supabase
+      .from('admin_users')
+      .select('role')
+      .eq('user_id', profile.id)
+      .single()
+
+    if (!admin) {
+      console.error('[API] Forbidden: User is not an admin')
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    // 4. Fetch Payments
     const { data: payments, error: dbError } = await supabase
       .from('payments')
       .select(`
@@ -48,10 +60,8 @@ export async function GET() {
 
     console.log(`[API] Found ${payments?.length} pending payments`)
 
-    // 4. Manual Join for Profiles (to be safe against Join issues)
-    // We'll fetch profiles for all unique user_ids in the result
+    // 5. Manual Join for Profiles
     const userIds = Array.from(new Set(payments?.map(p => p.user_id) || []))
-
     let profilesMap: Record<string, any> = {}
 
     if (userIds.length > 0) {
@@ -65,7 +75,7 @@ export async function GET() {
       })
     }
 
-    // 5. Attach Profile Data
+    // 6. Attach Profile Data
     const enrichedPayments = payments?.map(p => ({
       ...p,
       profile: profilesMap[p.user_id] || { full_name: 'Unknown', phone: 'N/A' }

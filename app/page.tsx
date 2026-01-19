@@ -106,7 +106,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up delay-300">
             <Link
-              href="/signup"
+              href="/sign-up"
               className="group h-14 px-8 flex items-center gap-2 bg-slate-900 text-white rounded-full font-semibold text-lg hover:scale-105 active:scale-95 transition-all shadow-xl hover:shadow-2xl hover:shadow-slate-900/20"
             >
               Reserve Your Desk <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />

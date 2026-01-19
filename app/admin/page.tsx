@@ -1,49 +1,36 @@
-'use client'
-
 import { Users, CreditCard, AlertCircle, IndianRupee, TrendingUp, Calendar, Zap, Bell, Armchair } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { useEffect, useState } from 'react'
+import { createAdminClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 
-export default function AdminDashboardPage() {
-    const [stats, setStats] = useState({
-        activeBookings: 0,
-        pendingPayments: 0,
-        monthlyRevenue: 0
-    })
+// Server Component
+export default async function AdminDashboardPage() {
+    const supabase = await createAdminClient()
 
-    useEffect(() => {
-        async function fetchStats() {
-            const supabase = createClient()
+    // 1. Pending Payments
+    const { count: pending } = await supabase
+        .from('payments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending')
 
-            // 1. Pending Payments
-            const { count: pending } = await supabase
-                .from('payments')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'pending')
+    // 2. Active Bookings
+    const { count: active } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active')
 
-            // 2. Active Bookings
-            const { count: active } = await supabase
-                .from('bookings')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'active')
+    // 3. Revenue
+    const { data: payments } = await supabase
+        .from('payments')
+        .select('amount')
+        .eq('status', 'approved')
 
-            // 3. Revenue
-            const { data: payments } = await supabase
-                .from('payments')
-                .select('amount')
-                .eq('status', 'approved')
+    const revenue = payments?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0
 
-            const revenue = payments?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0
-
-            setStats({
-                activeBookings: active || 0,
-                pendingPayments: pending || 0,
-                monthlyRevenue: revenue
-            })
-        }
-        fetchStats()
-    }, [])
+    const stats = {
+        activeBookings: active || 0,
+        pendingPayments: pending || 0,
+        monthlyRevenue: revenue
+    }
 
     return (
         <div className="max-w-7xl mx-auto">

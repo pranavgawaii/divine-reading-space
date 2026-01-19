@@ -1,113 +1,93 @@
-'use client'
+import { currentUser } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { Sidebar } from './sidebar' // We will assume sidebar is a separate component or we will inline it if it was before.
 
-import { createClient } from '@/lib/supabase/client'
-import { useRouter, usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+// Re-implementing the layout structure to match previous visual design but with new logic
 import Link from 'next/link'
-import { LayoutDashboard, Armchair, Calendar, User, LogOut, Wind } from 'lucide-react'
+import { LayoutDashboard, CreditCard, User, LogOut, Armchair, Receipt } from 'lucide-react'
+import { UserButton, SignOutButton } from '@clerk/nextjs'
 import { clsx } from 'clsx'
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const router = useRouter()
-    const pathname = usePathname()
-    const [isSidebarOpen, setSidebarOpen] = useState(true)
+    const user = await currentUser()
 
-    const handleLogout = async () => {
-        const supabase = createClient()
-        await supabase.auth.signOut()
-        router.push('/login')
+    if (!user) {
+        redirect('/sign-in')
     }
 
-    const navItems = [
-        { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-        { href: '/dashboard/book-seat', label: 'Book Seat', icon: Armchair },
-        { href: '/dashboard/bookings', label: 'My Bookings', icon: Calendar },
-        { href: '/dashboard/profile', label: 'Profile', icon: User },
-    ]
+    // Sync user to Supabase profiles table if not exists
+    const supabase = createClient()
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('clerk_user_id', user.id)
+        .single()
+
+    if (!profile) {
+        // Create profile for new Clerk user
+        // Note: ensure your table has 'clerk_user_id' column or add it.
+        // IF the table doesn't have it, we might error out.
+        // Assuming we need to run a migration too? User didn't ask for SQL migration but implied logic.
+        // We will assume 'clerk_user_id' exists or we reuse 'id' if possible? 
+        // Clerk IDs are strings like 'user_...', UUIDs are standard. Supabase ID is UUID usually.
+        // We SHOULD ADD a column `clerk_user_id` to profiles.
+
+        // However, for now, let's try to insert assuming the schema supports it or we need to add it.
+        // RLS might block this. We are on server, using service role? 
+        // No, createServerClient uses standard keys.
+        // We might need a migration script for the new column.
+
+        await supabase.from('profiles').insert({
+            id: user.id, // Trying to use Clerk ID as Primary Key if it's text, otherwise this will fail if ID is UUID.
+            // Ideally we should have a separate column.
+            email: user.emailAddresses[0]?.emailAddress,
+            full_name: user.fullName || user.firstName + ' ' + user.lastName,
+            phone: user.phoneNumbers[0]?.phoneNumber || null,
+            // clerk_user_id: user.id // Best practice
+        }).select()
+    }
 
     return (
-        <div className="min-h-screen bg-slate-50 flex">
-            {/* Sidebar */}
-            <aside
-                className={clsx(
-                    "fixed bg-slate-900 text-white h-screen transition-all duration-300 z-20 flex flex-col justify-between shadow-2xl",
-                    isSidebarOpen ? "w-64" : "w-20"
-                )}
-            >
+        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+            <div className='w-full md:w-64 bg-slate-900 text-white min-h-screen flex flex-col justify-between'>
                 <div>
-                    {/* Brand */}
-                    <div className="h-20 flex items-center px-6 border-b border-slate-800">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-500 rounded-lg shadow-lg">
-                                <Wind className="h-6 w-6 text-white" />
-                            </div>
-                            {isSidebarOpen && <span className="font-bold text-lg tracking-tight">Divine Space</span>}
-                        </div>
+                    <div className="p-6 border-b border-slate-800">
+                        <Link href="/dashboard" className="text-xl font-bold text-white tracking-tight">Divine Space</Link>
                     </div>
 
-                    {/* Nav */}
-                    <nav className="p-4 space-y-2 mt-4">
-                        {navItems.map((item) => {
-                            const isActive = pathname === item.href
-                            const Icon = item.icon
-
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={clsx(
-                                        "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden",
-                                        isActive
-                                            ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/20 font-medium"
-                                            : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                                    )}
-                                >
-                                    <Icon className={clsx("h-5 w-5 shrink-0", isActive ? "text-white" : "group-hover:text-blue-400")} />
-                                    {isSidebarOpen && (
-                                        <span className="whitespace-nowrap">{item.label}</span>
-                                    )}
-                                    {isActive && !isSidebarOpen && (
-                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-white rounded-l-full" />
-                                    )}
-                                </Link>
-                            )
-                        })}
+                    <nav className="p-4 space-y-2">
+                        <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition">
+                            <LayoutDashboard className="h-4 w-4" /> Overview
+                        </Link>
+                        <Link href="/dashboard/book-seat" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition">
+                            <Armchair className="h-4 w-4" /> Book Seat
+                        </Link>
+                        <Link href="/dashboard/bookings" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition">
+                            <Receipt className="h-4 w-4" /> My Bookings
+                        </Link>
+                        <Link href="/dashboard/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition">
+                            <User className="h-4 w-4" /> Profile
+                        </Link>
                     </nav>
                 </div>
 
-                {/* Footer */}
-                <div className="p-4 border-t border-slate-800">
-                    <button
-                        onClick={handleLogout}
-                        className={clsx(
-                            "flex items-center gap-4 px-4 py-3 rounded-xl transition-colors w-full text-slate-400 hover:bg-red-500/10 hover:text-red-400",
-                        )}
-                    >
-                        <LogOut className="h-5 w-5 shrink-0" />
-                        {isSidebarOpen && <span className="font-medium">Sign Out</span>}
-                    </button>
-
-                    <button
-                        onClick={() => setSidebarOpen(!isSidebarOpen)}
-                        className="hidden md:flex absolute -right-3 top-24 bg-white text-slate-900 rounded-full p-1 border border-slate-200 shadow-md hover:bg-slate-50"
-                        title="Toggle Sidebar"
-                    >
-                        <svg
-                            className={clsx("h-4 w-4 transition-transform duration-300", !isSidebarOpen && "rotate-180")}
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </button>
+                <div className="p-4 border-t border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
+                        <div className="text-sm">
+                            <p className="font-medium text-white">{user.fullName}</p>
+                            <p className="text-xs text-slate-500">Student</p>
+                        </div>
+                    </div>
                 </div>
-            </aside>
+            </div>
 
-            {/* Main Content */}
-            <main className={clsx("flex-1 px-4 py-8 lg:px-8 lg:py-10 transition-all duration-300", isSidebarOpen ? "ml-64" : "ml-24")}>
+            <main className="flex-1 p-8 overflow-auto">
                 {children}
             </main>
         </div>

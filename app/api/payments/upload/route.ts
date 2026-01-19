@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 export async function POST(request: Request) {
     try {
@@ -11,18 +12,32 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing file or seatId' }, { status: 400 })
         }
 
-        // 1. Initialize Supabase
-        const supabase = await createClient()
-
-        // 2. Get User
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
+        // 1. Check Auth (Clerk)
+        const { userId: clerkUserId } = auth()
+        if (!clerkUserId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // 3. Upload File to Storage
+        // 2. Initialize Admin DB Client
+        const supabase = await createAdminClient()
+
+        // 3. Resolve Supabase Profile ID from Clerk ID
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('clerk_user_id', clerkUserId)
+            .single()
+
+        if (!profile) {
+            return NextResponse.json({ error: 'Profile not found. Please re-login.' }, { status: 404 })
+        }
+        const userUuid = profile.id
+
+        // 4. Upload File to Storage
+        // Note: Admin client bypasses RLS, so this works.
         const fileExt = file.name.split('.').pop()
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`
+        const fileName = `${userUuid}/${Date.now()}.${fileExt}`
+
         const { error: uploadError, data: uploadData } = await supabase.storage
             .from('payment-screenshots')
             .upload(fileName, file)
@@ -32,25 +47,22 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 })
         }
 
-        // 4. Get Public URL
+        // 5. Get Public URL
         const { data: { publicUrl } } = supabase.storage
             .from('payment-screenshots')
             .getPublicUrl(fileName)
 
-        // 5. Create Booking & Payment
-        // We start a "transaction" conceptually. Supabase doesn't support multi-table transaction via API easily without functions,
-        // so we'll do sequential inserts.
+        // 6. Create Booking & Payment
 
         // A. Create Booking
         const startDate = new Date().toISOString()
-        // Add 30 days
         const endDate = new Date()
         endDate.setDate(endDate.getDate() + 30)
 
         const { data: booking, error: bookingError } = await supabase
             .from('bookings')
             .insert({
-                user_id: user.id,
+                user_id: userUuid,
                 seat_id: seatId,
                 start_date: startDate,
                 end_date: endDate.toISOString(),
@@ -71,7 +83,7 @@ export async function POST(request: Request) {
             .from('payments')
             .insert({
                 booking_id: booking.id,
-                user_id: user.id,
+                user_id: userUuid,
                 amount: 1000,
                 payment_type: 'registration',
                 screenshot_url: publicUrl,
@@ -80,7 +92,7 @@ export async function POST(request: Request) {
 
         if (paymentError) {
             console.error('Payment Error:', paymentError)
-            // Ideally we should rollback booking here
+            // Rollback booking
             await supabase.from('bookings').delete().eq('id', booking.id)
             return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
         }
@@ -89,6 +101,6 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error('Server error:', error)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
     }
 }

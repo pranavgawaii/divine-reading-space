@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 export async function POST(request: Request) {
     try {
@@ -9,23 +10,35 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing Data' }, { status: 400 })
         }
 
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        // 1. Check Auth (Clerk)
+        const { userId: clerkUserId } = auth()
+        if (!clerkUserId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-        // 1. Update Payment
+        // 2. Init Admin Client
+        const supabase = await createAdminClient()
+
+        // 3. Resolve Admin Profile ID
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('clerk_user_id', clerkUserId)
+            .single()
+
+        if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+        // 4. Update Payment
         const { error: paymentError } = await supabase
             .from('payments')
             .update({
-                status: 'approved', // or 'verified' based on user request, let's use 'approved'
-                verified_by: user.id,
+                status: 'approved',
+                verified_by: profile.id, // Use resolved UUID
                 verified_at: new Date().toISOString()
             })
             .eq('id', paymentId)
 
         if (paymentError) throw paymentError
 
-        // 2. Update Booking
+        // 5. Update Booking
         const { error: bookingError } = await supabase
             .from('bookings')
             .update({
@@ -36,10 +49,7 @@ export async function POST(request: Request) {
 
         if (bookingError) throw bookingError
 
-        // 3. Update Seat (Mark as not available/occupied)
-        // Actually, our seat grid logic uses 'active' bookings to determine occupancy.
-        // But user requested: "Update seats table: is_available = false"
-        // Let's do as requested, although strictly not needed if we check bookings.
+        // 6. Update Seat
         if (seatId) {
             await supabase
                 .from('seats')

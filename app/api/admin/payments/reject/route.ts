@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 export async function POST(request: Request) {
     try {
@@ -9,23 +10,35 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing Data' }, { status: 400 })
         }
 
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        // 1. Check Auth (Clerk)
+        const { userId: clerkUserId } = auth()
+        if (!clerkUserId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-        // 1. Update Payment
+        // 2. Init Admin Client
+        const supabase = await createAdminClient()
+
+        // 3. Resolve Admin Profile ID
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('clerk_user_id', clerkUserId)
+            .single()
+
+        if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+        // 4. Update Payment
         const { error: paymentError } = await supabase
             .from('payments')
             .update({
                 status: 'rejected',
-                verified_by: user.id,
+                verified_by: profile.id,
                 verified_at: new Date().toISOString()
             })
             .eq('id', paymentId)
 
         if (paymentError) throw paymentError
 
-        // 2. Update Booking
+        // 5. Update Booking
         const { error: bookingError } = await supabase
             .from('bookings')
             .update({
@@ -34,12 +47,6 @@ export async function POST(request: Request) {
             .eq('id', bookingId)
 
         if (bookingError) throw bookingError
-
-        // Note: We don't need to update seat because we never set it to occupied (false) yet, 
-        // or if we did, we should set it back to true. 
-        // Since this is rejection of pending, the seat was likely still 'available' (true) 
-        // but blocked by the pending booking in some logic (or not). 
-        // User requirement: "Keep seat available (is_available = true)"
 
         return NextResponse.json({ success: true })
 

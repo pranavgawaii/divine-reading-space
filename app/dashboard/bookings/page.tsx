@@ -1,51 +1,54 @@
-'use client'
-
-import { createClient } from '@/lib/supabase/client'
-import { useEffect, useState } from 'react'
-import { Loader2, Calendar, Clock, Receipt, Armchair, ChevronRight } from 'lucide-react'
-import { clsx } from 'clsx'
+import { createAdminClient } from '@/lib/supabase/server'
+import { auth } from '@clerk/nextjs/server'
+import { Calendar, Receipt, Clock } from 'lucide-react'
 import Link from 'next/link'
+import { clsx } from 'clsx'
 
-type Booking = {
-    id: string
-    start_date: string
-    end_date: string
-    status: string
-    amount: number
-    seat: {
-        seat_number: string
-    } | null
-}
+export default async function MyBookingsPage() {
+    const { userId: clerkUserId } = auth()
+    if (!clerkUserId) return <div>Please sign in</div>
 
-export default function MyBookingsPage() {
-    const [bookings, setBookings] = useState<Booking[]>([])
-    const [loading, setLoading] = useState(true)
+    const supabase = await createAdminClient()
 
-    useEffect(() => {
-        const fetchBookings = async () => {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
+    // 1. Get Profile ID
+    const { data: profile } = await supabase.from('profiles').select('id').eq('clerk_user_id', clerkUserId).single()
 
-            if (user) {
-                const { data } = await supabase
-                    .from('bookings')
-                    .select('*, seat:seats(seat_number)')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
+    let bookings: any[] = []
 
-                if (data) setBookings(data as any)
-            }
-            setLoading(false)
+    if (profile) {
+        const { data } = await supabase
+            .from('bookings')
+            .select('*, seat:seats(seat_number)')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false })
+
+        if (data) bookings = data
+    }
+
+    // -- Helper Components (Inline for Server Component simplicity) --
+    function StatusBadge({ status }: { status: string }) {
+        const styles = {
+            active: 'bg-green-100 text-green-700 ring-1 ring-green-500/20',
+            pending: 'bg-orange-100 text-orange-700 ring-1 ring-orange-500/20',
+            expired: 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20',
+            cancelled: 'bg-red-100 text-red-700 ring-1 ring-red-500/20',
         }
-        fetchBookings()
-    }, [])
+        const label = status.charAt(0).toUpperCase() + status.slice(1)
+        return (
+            <span className={clsx("px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1", styles[status as keyof typeof styles] || styles.expired)}>
+                {status === 'active' && <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />}
+                {label}
+            </span>
+        )
+    }
 
-    if (loading) return (
-        <div className="flex h-[50vh] items-center justify-center flex-col gap-4">
-            <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-            <p className="text-slate-400 text-sm">Loading history...</p>
-        </div>
-    )
+    function formatDate(dateString: string) {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        })
+    }
 
     return (
         <div className="max-w-5xl mx-auto">
@@ -54,13 +57,6 @@ export default function MyBookingsPage() {
                     <h1 className="text-3xl font-bold text-slate-900 mb-2">Booking History</h1>
                     <p className="text-slate-500">Manage your past and current subscriptions.</p>
                 </div>
-                <Link
-                    href="/dashboard/book-seat"
-                    className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                >
-                    <Armchair className="h-4 w-4" />
-                    New Booking
-                </Link>
             </div>
 
             {bookings.length === 0 ? (
@@ -70,9 +66,6 @@ export default function MyBookingsPage() {
                     </div>
                     <h3 className="text-lg font-bold text-slate-900 mb-1">No Bookings Yet</h3>
                     <p className="text-slate-500 mb-6 max-w-xs">You haven't made any seat reservations yet. Start your journey today.</p>
-                    <Link href="/dashboard/book-seat" className="text-blue-600 font-bold hover:text-blue-700 hover:underline">
-                        Book your first seat →
-                    </Link>
                 </div>
             ) : (
                 <div className="grid gap-4">
@@ -119,29 +112,4 @@ export default function MyBookingsPage() {
             )}
         </div>
     )
-}
-
-function StatusBadge({ status }: { status: string }) {
-    const styles = {
-        active: 'bg-green-100 text-green-700 ring-1 ring-green-500/20',
-        pending: 'bg-orange-100 text-orange-700 ring-1 ring-orange-500/20',
-        expired: 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20',
-        cancelled: 'bg-red-100 text-red-700 ring-1 ring-red-500/20',
-    }
-    const label = status.charAt(0).toUpperCase() + status.slice(1)
-
-    return (
-        <span className={clsx("px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1", styles[status as keyof typeof styles] || styles.expired)}>
-            {status === 'active' && <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />}
-            {label}
-        </span>
-    )
-}
-
-function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-    })
 }
