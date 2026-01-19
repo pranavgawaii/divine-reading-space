@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { clsx } from 'clsx'
 
 export default async function MyBookingsPage() {
-    const { userId: clerkUserId } = auth()
+    const { userId: clerkUserId } = await auth()
     if (!clerkUserId) return <div>Please sign in</div>
 
     const supabase = createClient()

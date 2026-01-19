@@ -13,7 +13,7 @@ export async function POST(request: Request) {
         }
 
         // 1. Check Auth (Clerk)
-        const { userId: clerkUserId } = auth()
+        const { userId: clerkUserId } = await auth()
         if (!clerkUserId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
