@@ -1,6 +1,6 @@
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 
 export async function POST(request: Request) {
     try {
@@ -10,21 +10,23 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing Data' }, { status: 400 })
         }
 
-        // 1. Check Auth (Clerk)
-        const { userId: clerkUserId } = auth()
-        if (!clerkUserId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        // 1. Check Auth & Admin (Clerk)
+        const user = await currentUser()
+        if (!user || user.publicMetadata?.role !== 'admin') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
 
-        // 2. Init Admin Client
-        const supabase = await createAdminClient()
+        // 2. Init DB
+        const supabase = createClient()
 
         // 3. Resolve Admin Profile ID
         const { data: profile } = await supabase
             .from('profiles')
             .select('id')
-            .eq('clerk_user_id', clerkUserId)
+            .eq('clerk_user_id', user.id)
             .single()
 
-        if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+        if (!profile) return NextResponse.json({ error: 'Admin Profile not found' }, { status: 404 })
 
         // 4. Update Payment
         const { error: paymentError } = await supabase

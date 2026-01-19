@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { Calendar, Receipt, Clock } from 'lucide-react'
 import Link from 'next/link'
@@ -8,7 +8,7 @@ export default async function MyBookingsPage() {
     const { userId: clerkUserId } = auth()
     if (!clerkUserId) return <div>Please sign in</div>
 
-    const supabase = await createAdminClient()
+    const supabase = createClient()
 
     // 1. Get Profile ID
     const { data: profile } = await supabase.from('profiles').select('id').eq('clerk_user_id', clerkUserId).single()

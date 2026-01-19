@@ -1,42 +1,28 @@
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   console.log('[API] Fetching pending payments...')
   try {
-    // 1. Check Auth (Clerk)
-    const { userId: clerkUserId } = auth()
-    if (!clerkUserId) {
+    // 1. Check Auth & Admin Role (Clerk Metadata)
+    const user = await currentUser()
+
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2. Initialize Admin Client
-    const supabase = await createAdminClient()
-
-    // 3. Verify Admin Role (Use Clerk ID to find Profile -> Admin User)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('clerk_user_id', clerkUserId)
-      .single()
-
-    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-
-    const { data: admin } = await supabase
-      .from('admin_users')
-      .select('role')
-      .eq('user_id', profile.id)
-      .single()
-
-    if (!admin) {
-      console.error('[API] Forbidden: User is not an admin')
+    const isAdmin = user.publicMetadata?.role === 'admin'
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // 4. Fetch Payments
+    // 2. Initialize Supabase (No RLS)
+    const supabase = createClient()
+
+    // 3. Fetch Payments
     const { data: payments, error: dbError } = await supabase
       .from('payments')
       .select(`
@@ -58,9 +44,7 @@ export async function GET() {
       return NextResponse.json({ error: dbError.message }, { status: 500 })
     }
 
-    console.log(`[API] Found ${payments?.length} pending payments`)
-
-    // 5. Manual Join for Profiles
+    // 4. Manual Join for Profiles
     const userIds = Array.from(new Set(payments?.map(p => p.user_id) || []))
     let profilesMap: Record<string, any> = {}
 
@@ -75,7 +59,7 @@ export async function GET() {
       })
     }
 
-    // 6. Attach Profile Data
+    // 5. Attach Profile Data
     const enrichedPayments = payments?.map(p => ({
       ...p,
       profile: profilesMap[p.user_id] || { full_name: 'Unknown', phone: 'N/A' }

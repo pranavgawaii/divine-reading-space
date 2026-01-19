@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 
@@ -18,8 +18,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // 2. Initialize Admin DB Client
-        const supabase = await createAdminClient()
+        // 2. Initialize DB Client (No RLS)
+        const supabase = createClient()
 
         // 3. Resolve Supabase Profile ID from Clerk ID
         const { data: profile } = await supabase
@@ -34,7 +34,6 @@ export async function POST(request: Request) {
         const userUuid = profile.id
 
         // 4. Upload File to Storage
-        // Note: Admin client bypasses RLS, so this works.
         const fileExt = file.name.split('.').pop()
         const fileName = `${userUuid}/${Date.now()}.${fileExt}`
 

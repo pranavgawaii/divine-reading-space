@@ -1,10 +1,10 @@
 import { Users, CreditCard, AlertCircle, IndianRupee, TrendingUp, Calendar, Zap, Bell, Armchair } from 'lucide-react'
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 
 // Server Component
 export default async function AdminDashboardPage() {
-    const supabase = await createAdminClient()
+    const supabase = createClient()
 
     // 1. Pending Payments
     const { count: pending } = await supabase
