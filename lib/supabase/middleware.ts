@@ -50,12 +50,30 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    // Basic Admin protection check (placeholder logic)
-    if (request.nextUrl.pathname.startsWith('/admin') && user) {
-        // In a real app, check user role here. 
-        // For now, we allow any logged in user or add a specific email check if strict.
-        // const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-        // if (profile?.role !== 'admin') ...
+    // Role-Based Access Control
+    if (user) {
+        const { data: adminRecord } = await supabase
+            .from('admin_users')
+            .select('id')
+            .eq('id', user.id)
+            .single()
+
+        const isAdmin = !!adminRecord
+        const path = request.nextUrl.pathname
+
+        // 1. Admin trying to access Student Dashboard -> Redirect to Admin Panel
+        if (isAdmin && path.startsWith('/dashboard')) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/admin'
+            return NextResponse.redirect(url)
+        }
+
+        // 2. Student trying to access Admin Panel -> Redirect to Dashboard
+        if (!isAdmin && path.startsWith('/admin')) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/dashboard'
+            return NextResponse.redirect(url)
+        }
     }
 
     return supabaseResponse

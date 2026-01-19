@@ -28,8 +28,23 @@ export default function LoginPage() {
             setError(error.message)
             setLoading(false)
         } else {
-            router.push('/dashboard')
-            router.refresh()
+            // Check if user is admin
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (user) {
+                const { data: adminData } = await supabase
+                    .from('admin_users')
+                    .select('id')
+                    .eq('id', user.id)
+                    .single()
+
+                if (adminData) {
+                    router.push('/admin')
+                } else {
+                    router.push('/dashboard')
+                }
+                router.refresh()
+            }
         }
     }
 
