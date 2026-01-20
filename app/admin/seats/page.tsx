@@ -1,70 +1,57 @@
-'use client'
+import { createClient } from '@/lib/supabase/server'
+import { Armchair } from 'lucide-react'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Loader2, Armchair } from 'lucide-react'
-import { clsx } from 'clsx'
+export default async function AdminSeatsPage() {
+    const supabase = createClient()
 
-export default function AdminSeatsPage() {
-    const [seats, setSeats] = useState<any[]>([])
-    const [activeBookings, setActiveBookings] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    // Fetch seats sorted beautifully
+    const { data: seats } = await supabase.from('seats').select('*')
 
-    useEffect(() => {
-        fetchData()
-    }, [])
-
-    const fetchData = async () => {
-        const supabase = createClient()
-        const { data: s } = await supabase.from('seats').select('*').order('seat_number')
-        const { data: b } = await supabase.from('bookings')
-            .select('seat_id, profile:profiles(full_name)')
-            .eq('status', 'active')
-            .gte('end_date', new Date().toISOString().split('T')[0])
-
-        if (s) setSeats(s)
-        if (b) setActiveBookings(b)
-        setLoading(false)
-    }
-
-    const getSeatInfo = (seatId: string) => {
-        const booking = activeBookings.find(b => b.seat_id === seatId)
-        if (booking) return { status: 'occupied', user: booking.profile?.full_name }
-        return { status: 'available', user: null }
-    }
+    // Sort logic safe for Server Component
+    const sortedSeats = seats?.sort((a, b) => {
+        const numA = parseInt(a.seat_number.replace(/\D/g, '')) || 0
+        const numB = parseInt(b.seat_number.replace(/\D/g, '')) || 0
+        return numA - numB
+    }) || []
 
     return (
         <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Seat Management</h1>
-
-            {loading ? <Loader2 className="animate-spin" /> : (
-                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                    {seats.map(seat => {
-                        const info = getSeatInfo(seat.id)
-                        return (
-                            <div
-                                key={seat.id}
-                                className={clsx(
-                                    "p-3 rounded-xl border flex flex-col items-center text-center justify-center aspect-square transition",
-                                    info.status === 'occupied'
-                                        ? "bg-red-50 border-red-200 text-red-800"
-                                        : "bg-green-50 border-green-200 text-green-800"
-                                )}
-                            >
-                                <span className="font-bold text-lg mb-1">{seat.seat_number}</span>
-                                <div className="text-[10px] uppercase font-bold opacity-70">
-                                    {info.status}
-                                </div>
-                                {info.user && (
-                                    <div className="text-[10px] truncate w-full mt-1 bg-white/50 px-1 rounded">
-                                        {info.user}
-                                    </div>
-                                )}
-                            </div>
-                        )
-                    })}
+            <div className="mb-6 flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900">Seat Manager</h1>
+                    <p className="text-slate-500">Overview of hall layout and availability.</p>
                 </div>
-            )}
+                <div className="flex gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-white border border-green-500 rounded-full"></div>
+                        <span>Empty</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-red-100 border border-red-500 rounded-full"></div>
+                        <span>Occupied</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+                {sortedSeats.map((seat) => (
+                    <div
+                        key={seat.id}
+                        className={`
+                            relative h-24 rounded-xl border flex flex-col items-center justify-center
+                            ${seat.is_available
+                                ? 'bg-white border-green-200 hover:border-green-400'
+                                : 'bg-red-50 border-red-100'
+                            }
+                        `}
+                    >
+                        <Armchair className={`h-8 w-8 mb-2 ${seat.is_available ? 'text-green-500' : 'text-red-300'}`} />
+                        <span className={`font-bold text-sm ${seat.is_available ? 'text-slate-700' : 'text-red-400'}`}>
+                            {seat.seat_number}
+                        </span>
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }

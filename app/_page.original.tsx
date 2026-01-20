@@ -6,7 +6,6 @@ import { ArrowRight, Wind, Wifi, Zap, ShieldCheck, Users, Star, Menu, X, ArrowUp
 import { clsx } from 'clsx'
 import { motion } from 'framer-motion'
 import { Pricing } from '@/components/blocks/pricing'
-import { ModeToggle } from '@/components/mode-toggle'
 import { HeroScroll } from '@/components/blocks/hero-scroll'
 
 // --- COMPONENTS ---
@@ -27,7 +26,6 @@ function Navbar() {
                 <NavLink href="#features">Index</NavLink>
                 <NavLink href="#pricing">Membership</NavLink>
                 <NavLink href="#location">Contact</NavLink>
-                <ModeToggle />
                 <Link
                     href="/sign-up"
                     className="flex items-center gap-2 text-xs font-mono tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity"
@@ -37,13 +35,10 @@ function Navbar() {
                 </Link>
             </div>
 
-            {/* Mobile Menu Toggle & Theme Toggle */}
-            <div className="flex items-center gap-4 md:hidden pointer-events-auto">
-                <ModeToggle />
-                <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-white mix-blend-difference">
-                    {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-                </button>
-            </div>
+            {/* Mobile Menu Toggle */}
+            <button onClick={() => setIsOpen(!isOpen)} className="md:hidden pointer-events-auto p-2 text-white mix-blend-difference">
+                {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
         </nav>
     )
 }

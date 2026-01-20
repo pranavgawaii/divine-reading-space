@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 
 export async function POST(request: Request) {
     try {
@@ -12,9 +12,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing file or seatId' }, { status: 400 })
         }
 
-        // 1. Check Auth (Clerk)
-        const { userId: clerkUserId } = await auth()
-        if (!clerkUserId) {
+        // 1. Check Auth (Clerk) - Use currentUser to get details needed for creation
+        const user = await currentUser()
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
@@ -22,15 +22,33 @@ export async function POST(request: Request) {
         const supabase = createClient()
 
         // 3. Resolve Supabase Profile ID from Clerk ID
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
             .from('profiles')
             .select('id')
-            .eq('clerk_user_id', clerkUserId)
+            .eq('clerk_user_id', user.id)
             .single()
 
+        // SELF-HEALING: If profile doesn't exist, create it now.
         if (!profile) {
-            return NextResponse.json({ error: 'Profile not found. Please re-login.' }, { status: 404 })
+            console.log('Profile missing for payment. Creating now...')
+            const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert({
+                    clerk_user_id: user.id,
+                    email: user.emailAddresses[0]?.emailAddress,
+                    full_name: user.fullName || `${user.firstName} ${user.lastName}`,
+                    phone: user.phoneNumbers[0]?.phoneNumber || null,
+                })
+                .select('id')
+                .single()
+
+            if (createError || !newProfile) {
+                console.error('Failed to auto-create profile:', createError)
+                return NextResponse.json({ error: 'System error: Could not create user profile.' }, { status: 500 })
+            }
+            profile = newProfile
         }
+
         const userUuid = profile.id
 
         // 4. Upload File to Storage

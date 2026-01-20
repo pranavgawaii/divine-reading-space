@@ -1,27 +1,39 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { ClerkProvider } from '@clerk/nextjs'
-import "./globals.css";
+import './globals.css'
+import { Outfit, Space_Grotesk } from 'next/font/google'
+import type { Metadata } from 'next'
+import { ThemeProvider } from "@/components/theme-provider"
+import { ModeToggle } from "@/components/ui/mode-toggle"
 
-const inter = Inter({ subsets: ["latin"] });
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
+const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space' })
 
 export const metadata: Metadata = {
-  title: "Divine Reading Space",
-  description: "Your Silent Study Sanctuary",
-};
+  title: 'Divine Reading Space - Library Seat Booking',
+  description: 'Book your perfect study seat',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <ClerkProvider>
-      <html lang="en">
-        <body className={`${inter.className} antialiased bg-white text-gray-900`}>
-          {children}
+      <html lang="en" suppressHydrationWarning>
+        <body className={`${outfit.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
+          <div className="noise-bg" />
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <ModeToggle />
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>
-  );
+  )
 }

@@ -1,132 +1,59 @@
-'use client'
+import { createClient } from '@/lib/supabase/server'
+import { Calendar } from 'lucide-react'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Loader2, Search, Filter, Ban, Eye } from 'lucide-react'
-import { clsx } from 'clsx'
+export default async function AdminBookingsPage() {
+    const supabase = createClient()
 
-type Booking = {
-    id: string
-    created_at: string
-    start_date: string
-    end_date: string
-    status: string
-    seat: { seat_number: string } | null
-    user: { full_name: string; email?: string } | null
-    profile?: { full_name: string }
-    // We'll flatten this in fetching
-}
-
-export default function AdminBookingsPage() {
-    const [bookings, setBookings] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [filter, setFilter] = useState('all')
-
-    useEffect(() => {
-        fetchBookings()
-    }, [])
-
-    const fetchBookings = async () => {
-        setLoading(true)
-        const supabase = createClient()
-
-        // We fetch bookings joined with seats and profiles via user_id
-        // Note: 'profiles' is linked to 'bookings.user_id' via the 'user_id' FK logic? 
-        // Supabase needs explicit FK or we do manual fetch.
-        // Schema says: bookings.user_id -> profiles.id. So we can join.
-
-        const { data, error } = await supabase
-            .from('bookings')
-            .select(`
-        *,
-        seat:seats(seat_number),
-        profile:profiles(full_name, phone)
-      `)
-            .order('created_at', { ascending: false })
-
-        if (data) setBookings(data)
-        if (error) console.error(error)
-        setLoading(false)
-    }
-
-    const filteredBookings = bookings.filter(b => {
-        if (filter === 'all') return true
-        return b.status === filter
-    })
+    const { data: bookings } = await supabase
+        .from('bookings')
+        .select('*, profile:profiles(full_name, phone, email), seat:seats(seat_number)')
+        .order('created_at', { ascending: false })
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">All Bookings</h1>
-                <div className="flex gap-2">
-                    {['all', 'active', 'pending', 'expired', 'cancelled'].map(f => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={clsx(
-                                "px-3 py-1.5 rounded-lg text-sm font-medium capitalize border transition",
-                                filter === f
-                                    ? "bg-blue-50 border-blue-200 text-blue-700"
-                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                            )}
-                        >
-                            {f}
-                        </button>
-                    ))}
-                </div>
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-slate-900">All Bookings</h1>
+                <p className="text-slate-500">Master record of all seat reservations.</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-4">Student</th>
-                                <th className="px-6 py-4">Seat</th>
-                                <th className="px-6 py-4">Dates</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-xs">
+                        <tr>
+                            <th className="p-4">Student</th>
+                            <th className="p-4">Seat</th>
+                            <th className="p-4">Status</th>
+                            <th className="p-4">Duration</th>
+                            <th className="p-4">Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {bookings?.map((booking: any) => (
+                            <tr key={booking.id} className="hover:bg-slate-50">
+                                <td className="p-4">
+                                    <div className="font-semibold text-slate-900">{booking.profile?.full_name || 'Unknown'}</div>
+                                    <div className="text-slate-400 text-xs">{booking.profile?.phone}</div>
+                                </td>
+                                <td className="p-4">
+                                    <div className="font-bold text-lg text-slate-700">{booking.seat?.seat_number}</div>
+                                </td>
+                                <td className="p-4">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${booking.status === 'active' ? 'bg-green-100 text-green-700' :
+                                            booking.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
+                                        }`}>
+                                        {booking.status}
+                                    </span>
+                                </td>
+                                <td className="p-4 text-slate-500">
+                                    {new Date(booking.start_date).toLocaleDateString()} - {new Date(booking.end_date).toLocaleDateString()}
+                                </td>
+                                <td className="p-4 text-slate-400 text-xs">
+                                    {new Date(booking.created_at).toLocaleDateString()}
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {loading ? (
-                                <tr><td colSpan={5} className="px-6 py-12 text-center"><Loader2 className="animate-spin inline text-gray-400" /></td></tr>
-                            ) : filteredBookings.length === 0 ? (
-                                <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">No bookings found.</td></tr>
-                            ) : (
-                                filteredBookings.map((booking) => (
-                                    <tr key={booking.id} className="hover:bg-gray-50/50">
-                                        <td className="px-6 py-4">
-                                            <div className="font-medium text-gray-900">{booking.profile?.full_name || 'Unknown'}</div>
-                                            <div className="text-xs text-gray-500">{booking.profile?.phone}</div>
-                                        </td>
-                                        <td className="px-6 py-4 font-mono font-medium text-gray-700">
-                                            {booking.seat?.seat_number || '-'}
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-500">
-                                            <div>{new Date(booking.start_date).toLocaleDateString()}</div>
-                                            <div className="text-xs">to {new Date(booking.end_date).toLocaleDateString()}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={clsx(
-                                                "px-2 py-1 rounded-full text-xs font-semibold",
-                                                booking.status === 'active' && "bg-green-100 text-green-700",
-                                                booking.status === 'pending' && "bg-orange-100 text-orange-700",
-                                                booking.status === 'expired' && "bg-gray-100 text-gray-600",
-                                                booking.status === 'cancelled' && "bg-red-100 text-red-700",
-                                            )}>
-                                                {booking.status.toUpperCase()}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button className="text-blue-600 hover:text-blue-800 font-medium text-xs">View</button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     )

@@ -1,218 +1,273 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, Armchair, X, Check, ShieldCheck, Zap } from 'lucide-react'
-import { clsx } from 'clsx'
+import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
+import { Armchair, CheckCircle, X, AlertCircle, Upload, CreditCard, ScanLine, Loader2, ArrowRight } from 'lucide-react'
 
-type Seat = {
+// Define the Seat interface
+interface Seat {
     id: string
     seat_number: string
-    floor: string
-    section: string
     is_available: boolean
 }
 
-type Booking = {
-    seat_id: string
-    start_date: string
-    end_date: string
-}
-
 export default function BookSeatPage() {
+    const { user, isLoaded } = useUser()
+    const router = useRouter()
+    const supabase = createClient()
+
     const [seats, setSeats] = useState<Seat[]>([])
-    const [activeBookings, setActiveBookings] = useState<Booking[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null)
-    const supabase = createClient()
-    const router = useRouter()
+    const [isBooking, setIsBooking] = useState(false)
+    const [authError, setAuthError] = useState(false)
+    const [modalOpen, setModalOpen] = useState(false)
+    const [fileLocal, setFile] = useState<File | null>(null)
 
     useEffect(() => {
-        fetchSeatsData()
-    }, [])
+        if (isLoaded && !user) {
+            setAuthError(true)
+        }
+        fetchSeats()
+    }, [isLoaded, user])
 
-    const fetchSeatsData = async () => {
-        try {
-            const { data: seatsData } = await supabase
-                .from('seats')
-                .select('*')
-                .order('seat_number', { ascending: true })
+    const fetchSeats = async () => {
+        const { data, error } = await supabase
+            .from('seats')
+            .select('*')
+            .order('seat_number', { ascending: true })
 
-            const today = new Date().toISOString().split('T')[0]
-            const { data: bookingsData } = await supabase
-                .from('bookings')
-                .select('seat_id, start_date, end_date')
-                .in('status', ['active', 'pending'])
-                .gte('end_date', today)
+        if (data) {
+            const sorted = data.sort((a, b) => {
+                const numA = parseInt(a.seat_number.replace(/\D/g, '')) || 0
+                const numB = parseInt(b.seat_number.replace(/\D/g, '')) || 0
+                return numA - numB
+            })
+            setSeats(sorted)
+        }
+        setLoading(false)
+    }
 
-            if (seatsData) setSeats(seatsData)
-            if (bookingsData) setActiveBookings(bookingsData)
-        } catch (error) {
-            console.error('Error fetching data:', error)
-        } finally {
-            setLoading(false)
+    const handleBookClick = () => {
+        if (!selectedSeat) return
+        setModalOpen(true)
+    }
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0])
         }
     }
 
-    const getSeatStatus = (seat: Seat) => {
-        const isBooked = activeBookings.some(b => b.seat_id === seat.id)
-        if (isBooked) return 'occupied'
-        if (!seat.is_available) return 'maintenance'
-        return 'available'
+    const handleFileUpload = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!selectedSeat || !fileLocal) return
+        setIsBooking(true)
+
+        const formData = new FormData()
+        formData.append('seatId', selectedSeat.id)
+        formData.append('file', fileLocal)
+
+        try {
+            const res = await fetch('/api/payments/upload', {
+                method: 'POST',
+                body: formData
+            })
+
+            const result = await res.json()
+
+            if (!res.ok) {
+                throw new Error(result.error || 'Upload failed')
+            }
+
+            // Success - Close Modal safely
+            setModalOpen(false)
+            router.push('/dashboard')
+
+        } catch (error: any) {
+            alert('Payment submission failed: ' + error.message)
+        } finally {
+            setIsBooking(false)
+        }
     }
 
-    const handleSeatClick = (seat: Seat) => {
-        const status = getSeatStatus(seat)
-        if (status === 'occupied') return
-        if (status === 'maintenance') return
-        setSelectedSeat(seat)
-    }
+    if (loading) return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center text-muted-foreground font-mono uppercase tracking-widest text-xs">
+            <Loader2 className="h-6 w-6 animate-spin mb-4 text-foreground" />
+            <p>Initializing...</p>
+        </div>
+    )
 
-    const handleProceedToPayment = () => {
-        if (!selectedSeat) return
-        router.push(`/dashboard/payment?seatId=${selectedSeat.id}&seatNum=${selectedSeat.seat_number}`)
-    }
-
-    if (loading) {
-        return (
-            <div className="flex h-[80vh] items-center justify-center flex-col gap-4">
-                <Loader2 className="animate-spin h-10 w-10 text-blue-600" />
-                <p className="text-slate-500 font-medium">Loading layout...</p>
-            </div>
-        )
-    }
+    if (authError) return <div className="p-8 text-center text-red-500 font-mono">Authentication Required.</div>
 
     return (
-        <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+        <div className="space-y-8 relative">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Select Your Seat</h1>
-                    <p className="text-slate-500">Choose your perfect spot for deep work.</p>
+                    <h1 className="text-3xl font-display font-medium text-foreground tracking-tight">Select Workspace</h1>
+                    <p className="text-muted-foreground mt-1 font-light">Designate your coordinates.</p>
                 </div>
-
-                {/* Legend */}
-                <div className="flex flex-wrap gap-4 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm text-sm">
+                <div className="flex gap-4 text-[10px] uppercase tracking-widest font-mono bg-secondary/10 px-4 py-2 rounded-sm border border-border">
                     <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-green-500 shadow-sm"></div>
-                        <span className="text-slate-600 font-medium">Available</span>
+                        <div className="w-2 h-2 bg-background border border-foreground rounded-full"></div>
+                        <span className="text-foreground">Available</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-slate-200 border border-slate-300"></div>
-                        <span className="text-slate-400">Occupied</span>
+                        <div className="w-2 h-2 bg-secondary border border-border rounded-full"></div>
+                        <span className="text-muted-foreground">Occupied</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded bg-yellow-400 border border-yellow-500 shadow-sm"></div>
-                        <span className="text-slate-900 font-medium">Selected</span>
+                        <div className="w-2 h-2 bg-primary border border-primary rounded-full"></div>
+                        <span className="text-primary">Selected</span>
                     </div>
                 </div>
             </div>
 
-            {/* Grid */}
-            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl relative overflow-hidden">
-                {/* Decorative backdrop */}
-                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-50/50 rounded-full blur-3xl pointer-events-none" />
-
-                <div className="relative z-10 grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                    {seats.map((seat) => {
-                        const status = getSeatStatus(seat)
-                        const isSelected = selectedSeat?.id === seat.id
-
-                        return (
-                            <button
-                                key={seat.id}
-                                onClick={() => handleSeatClick(seat)}
-                                disabled={status !== 'available'}
-                                className={clsx(
-                                    "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all duration-300 relative group border-2",
-
-                                    status === 'occupied' && "bg-slate-50 border-slate-100 opacity-60 cursor-not-allowed",
-
-                                    status === 'available' && !isSelected && "bg-white border-slate-200 hover:border-green-400 hover:shadow-lg hover:shadow-green-100 hover:-translate-y-1 cursor-pointer",
-
-                                    isSelected && "bg-yellow-50 border-yellow-400 shadow-lg shadow-yellow-100 scale-105 z-10",
-
-                                    status === 'maintenance' && "bg-gray-100 border-gray-200 cursor-not-allowed opacity-50"
-                                )}
-                            >
-                                <Armchair className={clsx("h-6 w-6 mb-2 transition-colors",
-                                    status === 'occupied' ? "text-slate-300" :
-                                        isSelected ? "text-yellow-600" : "text-green-500 group-hover:text-green-600"
-                                )} />
-                                <span className={clsx("font-bold text-sm",
-                                    status === 'occupied' ? "text-slate-300" :
-                                        isSelected ? "text-yellow-900" : "text-slate-700"
-                                )}>
-                                    {seat.seat_number}
-                                </span>
-
-                                {status === 'available' && !isSelected && (
-                                    <div className="absolute inset-0 rounded-2xl ring-2 ring-green-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                            </button>
-                        )
-                    })}
+            <div className="bg-background p-8 rounded-sm border border-border shadow-none">
+                {/* Screen / Front Indicator */}
+                <div className="w-full flex justify-center mb-12">
+                    <div className="w-1/2 h-px bg-border relative">
+                        <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">Front Access</span>
+                    </div>
                 </div>
-            </div>
 
-            {/* Selection Modal */}
-            {selectedSeat && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl relative animate-in fade-in zoom-in-95 duration-300 border border-slate-100">
+                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+                    {seats.map((seat) => (
                         <button
-                            onClick={() => setSelectedSeat(null)}
-                            className="absolute top-4 right-4 p-2 bg-slate-50 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                            key={seat.id}
+                            disabled={!seat.is_available}
+                            onClick={() => setSelectedSeat(seat)}
+                            className={`
+                                relative h-16 rounded-sm flex flex-col items-center justify-center transition-all duration-300 group border
+                                ${!seat.is_available
+                                    ? 'bg-secondary/20 border-border text-muted-foreground cursor-not-allowed opacity-40'
+                                    : selectedSeat?.id === seat.id
+                                        ? 'bg-primary text-primary-foreground border-primary'
+                                        : 'bg-background border-border hover:border-foreground/50 hover:bg-secondary/5'
+                                }
+                            `}
                         >
-                            <X className="h-5 w-5" />
+                            <span className={`font-mono text-xs ${!seat.is_available ? 'text-muted-foreground' :
+                                selectedSeat?.id === seat.id ? 'text-primary-foreground' : 'text-foreground'
+                                }`}>{seat.seat_number}</span>
                         </button>
+                    ))}
+                </div>
+            </div>
 
-                        <div className="text-center mb-6">
-                            <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-yellow-50 border-2 border-yellow-100 mb-4 shadow-sm">
-                                <Armchair className="h-10 w-10 text-yellow-600" />
-                            </div>
-                            <h3 className="text-2xl font-bold text-slate-900">Seat {selectedSeat.seat_number}</h3>
-                            <p className="text-slate-500 font-medium">Window Section • 1st Floor</p>
-                        </div>
+            {/* Selection Bar */}
+            <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-foreground text-background p-4 rounded-sm flex items-center justify-between gap-6 transition-all duration-500 z-40 transform border border-border ${selectedSeat ? 'translate-y-0 opacity-100' : 'translate-y-32 opacity-0'}`}>
+                <div className="flex items-center gap-6 pl-4">
+                    <div>
+                        <p className="text-[10px] text-background/60 font-mono font-bold uppercase tracking-widest">Selected</p>
+                        <p className="text-2xl font-display font-medium text-background">{selectedSeat?.seat_number}</p>
+                    </div>
+                    <div className="h-8 w-px bg-background/20"></div>
+                    <div>
+                        <p className="text-[10px] text-background/60 font-mono font-bold uppercase tracking-widest">Fee</p>
+                        <p className="text-xl font-mono text-background">₹1,000</p>
+                    </div>
+                </div>
+                <button
+                    onClick={handleBookClick}
+                    className="bg-background text-foreground px-8 py-3 rounded-sm font-bold font-mono text-xs uppercase tracking-widest hover:bg-zinc-200 transition flex items-center gap-2 group"
+                >
+                    Book Now <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
+                </button>
+            </div>
 
-                        <div className="space-y-4 mb-8">
-                            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                                <ShieldCheck className="h-5 w-5 text-blue-500" />
-                                <span className="text-sm font-medium text-slate-700">Reserved for 30 days</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                                <Zap className="h-5 w-5 text-orange-500" />
-                                <span className="text-sm font-medium text-slate-700">Includes AC & WiFi</span>
-                            </div>
-                        </div>
+            {/* Premium Payment Modal */}
+            {modalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity"
+                        onClick={() => setModalOpen(false)}
+                    />
 
-                        <div className="space-y-3 border-t border-slate-100 pt-6 mb-8">
-                            <div className="flex justify-between items-center text-slate-600">
-                                <span>Monthly Fee</span>
-                                <span className="font-semibold">₹800</span>
-                            </div>
-                            <div className="flex justify-between items-center text-slate-600">
-                                <span>Registration</span>
-                                <span className="font-semibold">₹200</span>
-                            </div>
-                            <div className="flex justify-between items-center text-lg font-bold text-slate-900 pt-2 border-t border-slate-100">
-                                <span>Total</span>
-                                <span>₹1,000</span>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
+                    {/* Modal Content */}
+                    <div className="relative bg-background border border-border/50 rounded-sm shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="absolute top-0 right-0 p-4 z-10">
                             <button
-                                onClick={() => setSelectedSeat(null)}
-                                className="px-4 py-3.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition"
+                                onClick={() => setModalOpen(false)}
+                                className="p-2 hover:bg-secondary/50 rounded-full transition text-muted-foreground"
                             >
-                                Cancel
+                                <X className="h-5 w-5" />
                             </button>
-                            <button
-                                onClick={handleProceedToPayment}
-                                className="px-4 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 transition flex items-center justify-center gap-2"
-                            >
-                                Confirm
-                            </button>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row">
+                            {/* Left: QR Section */}
+                            <div className="bg-secondary/5 p-8 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-border md:w-1/2">
+                                <h3 className="font-display font-medium text-foreground mb-1">Scan to Pay</h3>
+                                <p className="text-[10px] font-mono text-muted-foreground mb-6 uppercase tracking-wider">UPI: DIVINE@UPI</p>
+
+                                <div className="bg-white p-2 rounded-sm mb-4">
+                                    <img
+                                        src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=divine@upi&pn=DivineReadingSpace&am=1000&cu=INR"
+                                        alt="Payment QR"
+                                        className="w-32 h-32"
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-background border border-border rounded-sm text-xs font-mono">
+                                    <CreditCard className="h-3 w-3" />
+                                    <span>₹1,000.00</span>
+                                </div>
+                            </div>
+
+                            {/* Right: Upload Section */}
+                            <div className="p-8 md:w-1/2 flex flex-col justify-center">
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-display font-medium text-foreground mb-1">Verification</h3>
+                                    <p className="text-xs text-muted-foreground font-light leading-relaxed">Upload screenshot transaction proof.</p>
+                                </div>
+
+                                <form onSubmit={handleFileUpload} className="space-y-4">
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                            id="file-upload"
+                                            className="hidden"
+                                        />
+                                        <label
+                                            htmlFor="file-upload"
+                                            className={`
+                                                flex flex-col items-center justify-center w-full h-32 border border-dashed rounded-sm cursor-pointer transition-all
+                                                ${fileLocal ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/50 hover:bg-secondary/5'}
+                                            `}
+                                        >
+                                            {fileLocal ? (
+                                                <>
+                                                    <CheckCircle className="h-6 w-6 text-primary mb-2" />
+                                                    <span className="text-[10px] font-mono text-primary truncate max-w-[90%]">{fileLocal.name}</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                                                    <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Upload Proof</span>
+                                                </>
+                                            )}
+                                        </label>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isBooking || !fileLocal}
+                                        className="w-full bg-foreground text-background py-3 rounded-sm font-mono text-xs font-bold uppercase tracking-widest hover:bg-foreground/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        {isBooking ? (
+                                            <>
+                                                <Loader2 className="h-3 w-3 animate-spin" /> Process
+                                            </>
+                                        ) : 'Confirm Now'}
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,13 +1,88 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
-:root {
-  --background: #ffffff;
-  --foreground: #0f172a;
+@config "../tailwind.config.ts";
+
+/*
+  The following layers are automatically handled by v4 but we keep the custom layer structure
+  that matches our Shadcn implementation.
+*/
+
+@layer base {
+  :root {
+    /* Updated Zinc Theme (Light) */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0rem;
+    /* Brutalist sharp edges */
+  }
+
+  .dark {
+    /* Updated Zinc Theme (Dark) - Deeper Blacks */
+    --background: 0 0% 3%;
+    /* #080808 */
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 20%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+
+  .font-display {
+    font-family: var(--font-space), sans-serif;
+  }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+.noise-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
 /* Custom Scrollbar for Webkit */
@@ -26,4 +101,83 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Force hide Next.js Dev Indicator */
+nextjs-portal,
+[data-nextjs-toast],
+[data-nextjs-dialog-overlay] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Clerk Overrides - High Contrast White Theme */
+.cl-card,
+.cl-rootBox {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.cl-header,
+.cl-footer,
+.cl-developmentBadge,
+.cl-badge,
+.cl-internal-b3fm6y,
+.cl-internal-1dauvpw {
+  display: none !important;
+}
+
+/* Inputs: Always White Background, Black Text */
+.cl-formFieldInput {
+  background-color: #ffffff !important;
+  border: 1px solid #e4e4e7 !important;
+  /* zinc-200 */
+  color: #000000 !important;
+  border-radius: 0 !important;
+  padding: 12px !important;
+}
+
+/* Primary Button: White, Black Text */
+.cl-formButtonPrimary {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  text-transform: uppercase !important;
+  font-family: var(--font-mono) !important;
+  letter-spacing: 0.1em !important;
+  border-radius: 0 !important;
+  height: 44px !important;
+  font-weight: 700 !important;
+}
+
+/* Social Button (Google): White, Black Text */
+.cl-socialButtonsBlockButton {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #e4e4e7 !important;
+  border-radius: 0 !important;
+  height: 44px !important;
+}
+
+.cl-socialButtonsBlockButtonText {
+  color: #000000 !important;
+  font-family: var(--font-mono) !important;
+  text-transform: uppercase !important;
+  font-size: 10px !important;
+  letter-spacing: 0.1em !important;
+  font-weight: 700 !important;
+}
+
+.cl-dividerLine {
+  background-color: #27272a !important;
+  /* zinc-800 */
+}
+
+.cl-dividerText {
+  color: #71717a !important;
+  /* zinc-500 */
 }
