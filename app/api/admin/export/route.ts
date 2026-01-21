@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
         const csv = [
             ['ID', 'Name', 'Email', 'Phone', 'Amount', 'Seat', 'Status', 'Date'].join(','),
-            ...(data || []).map(p => [
+            ...(data || []).map((p: any) => [
                 p.id,
                 `"${p.profile?.full_name || ''}"`,
                 p.profile?.email || '',
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
 
         const csv = [
             ['ID', 'Name', 'Email', 'Phone', 'Seat', 'Status', 'Start Date', 'End Date', 'Amount', 'Created At'].join(','),
-            ...(data || []).map(b => [
+            ...(data || []).map((b: any) => [
                 b.id,
                 `"${b.profile?.full_name || ''}"`,
                 b.profile?.email || '',
