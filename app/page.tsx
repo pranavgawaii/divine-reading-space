@@ -8,6 +8,8 @@ import { motion } from 'framer-motion'
 import { Pricing } from '@/components/blocks/pricing'
 import { ModeToggle } from '@/components/mode-toggle'
 import { HeroScroll } from '@/components/blocks/hero-scroll'
+import { ContactSection } from '@/components/blocks/contact-section'
+import { BorderTrail } from '@/components/ui/border-trail'
 
 // --- COMPONENTS ---
 
@@ -15,36 +17,75 @@ function Navbar() {
     const [isOpen, setIsOpen] = useState(false)
 
     return (
-        <nav className="fixed w-full z-50 px-6 py-6 flex justify-between items-center mix-blend-exclusion text-white bg-transparent pointer-events-none">
+        <nav className="fixed w-full z-50 px-8 md:px-12 py-6 flex justify-between items-center mix-blend-exclusion text-white bg-transparent pointer-events-none">
             <div className="pointer-events-auto">
-                <Link href="/" className="text-xs font-mono tracking-widest uppercase opacity-80 hover:opacity-100 transition-opacity flex items-center gap-2">
-                    <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                    DIVINE SPACE © 2026
+                <Link href="/" className="text-sm md:text-base font-mono tracking-widest uppercase opacity-80 hover:opacity-100 transition-opacity flex items-center gap-3">
+                    <span className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
+                    DRS
                 </Link>
             </div>
 
             <div className="pointer-events-auto hidden md:flex items-center gap-8">
                 <NavLink href="#features">Index</NavLink>
                 <NavLink href="#pricing">Membership</NavLink>
-                <NavLink href="#location">Contact</NavLink>
-                <ModeToggle />
+                <Link href="#location" className="text-xs font-mono tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity flex items-center gap-2 group">
+                    <span className="w-1 h-1 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Contact Us
+                </Link>
                 <Link
                     href="/sign-up"
-                    className="flex items-center gap-2 text-xs font-mono tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity"
+                    className="flex items-center gap-2 text-xs font-mono tracking-widest uppercase opacity-100 bg-white text-black px-4 py-2 hover:bg-white/90 transition-colors"
                 >
-                    <span className="w-1 h-1 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    Reserve
+                    <span className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></span>
+                    Join Now
                 </Link>
+                <ModeToggle />
             </div>
 
             {/* Mobile Menu Toggle & Theme Toggle */}
             <div className="flex items-center gap-4 md:hidden pointer-events-auto">
                 <ModeToggle />
-                <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-white mix-blend-difference">
+                <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-white mix-blend-difference relative z-50">
                     {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                 </button>
             </div>
+
+            {/* Mobile Menu Overlay */}
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="fixed inset-0 bg-background/95 backdrop-blur-3xl z-40 flex flex-col items-center justify-center pointer-events-auto md:hidden"
+                >
+                    <div className="flex flex-col items-center gap-8">
+                        <MobileNavLink href="#features" onClick={() => setIsOpen(false)}>Index</MobileNavLink>
+                        <MobileNavLink href="#pricing" onClick={() => setIsOpen(false)}>Membership</MobileNavLink>
+                        <MobileNavLink href="#location" onClick={() => setIsOpen(false)}>Contact Us</MobileNavLink>
+                        <Link
+                            href="/sign-up"
+                            onClick={() => setIsOpen(false)}
+                            className="mt-4 flex items-center gap-2 text-sm font-mono tracking-widest uppercase bg-foreground text-background px-8 py-3 hover:bg-foreground/90 transition-colors"
+                        >
+                            <span className="w-1.5 h-1.5 bg-background rounded-full animate-pulse"></span>
+                            Join Now
+                        </Link>
+                    </div>
+                </motion.div>
+            )}
         </nav>
+    )
+}
+
+function MobileNavLink({ href, onClick, children }: { href: string, onClick: () => void, children: React.ReactNode }) {
+    return (
+        <a
+            href={href}
+            onClick={onClick}
+            className="text-2xl font-display font-medium text-foreground tracking-tight hover:text-primary transition-colors"
+        >
+            {children}
+        </a>
     )
 }
 
@@ -111,6 +152,12 @@ export default function LandingPage() {
                         {/* Feature 1 */}
                         <article className="group relative cursor-pointer">
                             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-sm bg-secondary mb-6 border border-border/10">
+                                <BorderTrail
+                                    style={{
+                                        boxShadow: '0px 0px 60px 30px rgb(255 255 255 / 50%), 0 0 100px 60px rgb(0 0 0 / 50%), 0 0 140px 90px rgb(0 0 0 / 50%)'
+                                    }}
+                                    size={100}
+                                />
                                 <div className="absolute inset-0 bg-gradient-to-br from-background/0 to-background/50 z-10" />
                                 <div className="w-full h-full flex items-center justify-center group-hover:scale-105 transition-transform duration-700">
                                     <Wind className="h-32 w-32 text-muted-foreground/10 group-hover:text-foreground/80 transition-colors duration-500" />
@@ -132,6 +179,12 @@ export default function LandingPage() {
                         {/* Feature 2 */}
                         <article className="group relative cursor-pointer md:mt-24">
                             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-sm bg-secondary mb-6 border border-border/10">
+                                <BorderTrail
+                                    style={{
+                                        boxShadow: '0px 0px 60px 30px rgb(255 255 255 / 50%), 0 0 100px 60px rgb(0 0 0 / 50%), 0 0 140px 90px rgb(0 0 0 / 50%)'
+                                    }}
+                                    size={100}
+                                />
                                 <div className="absolute inset-0 bg-gradient-to-br from-background/0 to-background/50 z-10" />
                                 <div className="w-full h-full flex items-center justify-center group-hover:scale-105 transition-transform duration-700">
                                     <Wifi className="h-32 w-32 text-muted-foreground/10 group-hover:text-foreground/80 transition-colors duration-500" />
@@ -153,6 +206,12 @@ export default function LandingPage() {
                         {/* Feature 3 */}
                         <article className="group relative cursor-pointer">
                             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-sm bg-secondary mb-6 border border-border/10">
+                                <BorderTrail
+                                    style={{
+                                        boxShadow: '0px 0px 60px 30px rgb(255 255 255 / 50%), 0 0 100px 60px rgb(0 0 0 / 50%), 0 0 140px 90px rgb(0 0 0 / 50%)'
+                                    }}
+                                    size={100}
+                                />
                                 <div className="absolute inset-0 bg-gradient-to-br from-background/0 to-background/50 z-10" />
                                 <div className="w-full h-full flex items-center justify-center group-hover:scale-105 transition-transform duration-700">
                                     <ShieldCheck className="h-32 w-32 text-muted-foreground/10 group-hover:text-foreground/80 transition-colors duration-500" />
@@ -174,6 +233,12 @@ export default function LandingPage() {
                         {/* Feature 4 */}
                         <article className="group relative cursor-pointer md:mt-24">
                             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-sm bg-secondary mb-6 border border-border/10">
+                                <BorderTrail
+                                    style={{
+                                        boxShadow: '0px 0px 60px 30px rgb(255 255 255 / 50%), 0 0 100px 60px rgb(0 0 0 / 50%), 0 0 140px 90px rgb(0 0 0 / 50%)'
+                                    }}
+                                    size={100}
+                                />
                                 <div className="absolute inset-0 bg-gradient-to-br from-background/0 to-background/50 z-10" />
                                 <div className="w-full h-full flex items-center justify-center group-hover:scale-105 transition-transform duration-700">
                                     <Star className="h-32 w-32 text-muted-foreground/10 group-hover:text-foreground/80 transition-colors duration-500" />
@@ -253,6 +318,10 @@ export default function LandingPage() {
                     ]}
                 />
             </section>
+
+            {/* CONTACT / LOCATION */}
+            {/* CONTACT / LOCATION */}
+            <ContactSection />
 
             {/* FOOTER */}
             <footer className="border-t border-border/20 bg-background pb-12 pt-24">

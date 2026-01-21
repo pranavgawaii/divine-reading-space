@@ -113,7 +113,7 @@ nextjs-portal,
   pointer-events: none !important;
 }
 
-/* Clerk Overrides - High Contrast White Theme */
+/* Clerk Overrides - Dark Sanctuary Theme */
 .cl-card,
 .cl-rootBox {
   background-color: transparent !important;
@@ -132,14 +132,27 @@ nextjs-portal,
   display: none !important;
 }
 
-/* Inputs: Always White Background, Black Text */
+/* Inputs: Transparent on Dark, White Text */
 .cl-formFieldInput {
-  background-color: #ffffff !important;
-  border: 1px solid #e4e4e7 !important;
-  /* zinc-200 */
-  color: #000000 !important;
+  background-color: transparent !important;
+  border: 1px solid #27272a !important;
+  /* zinc-800 */
+  color: #ffffff !important;
   border-radius: 0 !important;
   padding: 12px !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Force Autofill to match Dark Theme - Box Shadow Hack */
+.cl-formFieldInput:-webkit-autofill,
+.cl-formFieldInput:-webkit-autofill:hover,
+.cl-formFieldInput:-webkit-autofill:focus,
+.cl-formFieldInput:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #09090b inset !important;
+  /* zinc-950 */
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 /* Primary Button: White, Black Text */
@@ -178,6 +191,8 @@ nextjs-portal,
 }
 
 .cl-dividerText {
-  color: #71717a !important;
-  /* zinc-500 */
+  color: #a1a1aa !important;
+  /* zinc-400 */
+  background-color: #09090b !important;
+  /* zinc-950 needed to mask line */
 }

@@ -193,7 +193,7 @@ export function Pricing({
                                         "w-full rounded-xl text-lg font-bold h-14 transition-all duration-300",
                                         plan.isPopular
                                             ? "bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
-                                            : "bg-white border-2 border-slate-200 text-slate-800 hover:border-primary hover:text-primary hover:bg-primary/5"
+                                            : "bg-background border-2 border-border text-foreground hover:border-primary hover:text-primary hover:bg-primary/5"
                                     )}
                                 >
                                     {plan.buttonText}

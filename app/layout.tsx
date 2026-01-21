@@ -3,14 +3,15 @@ import './globals.css'
 import { Outfit, Space_Grotesk } from 'next/font/google'
 import type { Metadata } from 'next'
 import { ThemeProvider } from "@/components/theme-provider"
-import { ModeToggle } from "@/components/ui/mode-toggle"
+import { Toaster } from "@/components/ui/toaster"
+
 
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space' })
 
 export const metadata: Metadata = {
-  title: 'Divine Reading Space - Library Seat Booking',
-  description: 'Book your perfect study seat',
+  title: 'Divine Reading Space - Premium Study Rooms',
+  description: 'Book your quiet study space in a premium reading environment',
 }
 
 export default function RootLayout({
@@ -30,7 +31,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             {children}
-            <ModeToggle />
+            <Toaster />
           </ThemeProvider>
         </body>
       </html>

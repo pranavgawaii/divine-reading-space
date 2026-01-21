@@ -1,4 +1,4 @@
-import { Users, CreditCard, AlertCircle, IndianRupee, TrendingUp, Calendar, Zap, Bell, Armchair } from 'lucide-react'
+import { Users, CreditCard, AlertCircle, IndianRupee, TrendingUp, Calendar, Zap, Bell, Armchair, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 
@@ -52,6 +52,14 @@ export default async function AdminDashboardPage() {
 
     const monthlyRevenue = payments?.reduce((acc, curr) => acc + curr.amount, 0) || 0
 
+    // 4. Total Seats
+    const { count: totalSeats } = await supabase
+        .from('seats')
+        .select('*', { count: 'exact', head: true })
+
+    // 5. Occupancy Rate
+    const occupancyRate = totalSeats ? Math.round((activeBookings || 0) / totalSeats * 100) : 0
+
     return (
         <div>
             <div className="mb-8">
@@ -59,7 +67,8 @@ export default async function AdminDashboardPage() {
                 <p className="text-slate-500">Welcome back, Admin. Here's what's happening today.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard
                     title="Pending Verifications"
                     value={pending || 0}
@@ -67,7 +76,7 @@ export default async function AdminDashboardPage() {
                     icon={AlertCircle}
                     color="text-amber-600"
                     bgColor="bg-amber-100"
-                    trend={pending && pending > 0 ? "Action Needed" : "All Clear"}
+                    trend={pending && pending > 0 ? "Action Needed" : null}
                 />
 
                 <StatCard
@@ -77,7 +86,7 @@ export default async function AdminDashboardPage() {
                     icon={Users}
                     color="text-indigo-600"
                     bgColor="bg-indigo-100"
-                    trend="+12% vs last month"
+                    trend="+12%"
                 />
 
                 <StatCard
@@ -87,8 +96,47 @@ export default async function AdminDashboardPage() {
                     icon={IndianRupee}
                     color="text-emerald-600"
                     bgColor="bg-emerald-100"
-                    trend="+5% vs last month"
+                    trend="+5%"
                 />
+
+                <StatCard
+                    title="Occupancy Rate"
+                    value={`${occupancyRate}%`}
+                    subtext={`${activeBookings || 0} of ${totalSeats || 0} seats`}
+                    icon={BarChart3}
+                    color="text-blue-600"
+                    bgColor="bg-blue-100"
+                    trend={occupancyRate > 70 ? "High" : "Normal"}
+                />
+            </div>
+
+            {/* Revenue Insight */}
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-6 mb-8">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 className="text-xl font-semibold text-slate-900 mb-1">Revenue Insights</h2>
+                        <p className="text-slate-600 text-sm">Monthly performance at a glance</p>
+                    </div>
+                    <div className="h-12 w-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                        <TrendingUp className="h-6 w-6 text-indigo-600" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4">
+                        <p className="text-xs text-slate-500 mb-1">This Month</p>
+                        <p className="text-2xl font-bold text-slate-900">₹{monthlyRevenue.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4">
+                        <p className="text-xs text-slate-500 mb-1">Avg per Student</p>
+                        <p className="text-2xl font-bold text-slate-900">
+                            ₹{activeBookings ? Math.round(monthlyRevenue / activeBookings).toLocaleString() : 0}
+                        </p>
+                    </div>
+                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4">
+                        <p className="text-xs text-slate-500 mb-1">Pending</p>
+                        <p className="text-2xl font-bold text-amber-600">{pending || 0}</p>
+                    </div>
+                </div>
             </div>
 
             {/* Quick Actions */}
