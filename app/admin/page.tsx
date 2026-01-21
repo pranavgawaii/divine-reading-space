@@ -1,6 +1,7 @@
 import { Users, CreditCard, AlertCircle, IndianRupee, TrendingUp, Calendar, Zap, Bell, Armchair, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { RevenueChart } from '@/components/admin/revenue-chart'
 
 // Server Component
 function StatCard({ title, value, subtext, icon: Icon, trend, color, bgColor }: any) {
@@ -44,13 +45,24 @@ export default async function AdminDashboardPage() {
         .eq('status', 'active')
 
     // 3. Monthly Revenue
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     const { data: payments } = await supabase
         .from('payments')
-        .select('amount')
+        .select('amount, created_at')
         .eq('status', 'approved')
-        .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+        .gte('created_at', startOfMonth.toISOString())
+        .order('created_at', { ascending: true })
 
     const monthlyRevenue = payments?.reduce((acc, curr) => acc + curr.amount, 0) || 0
+
+    // Process data for chart
+    const chartDataMap = new Map<string, number>()
+    payments?.forEach(payment => {
+        const date = new Date(payment.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
+        chartDataMap.set(date, (chartDataMap.get(date) || 0) + payment.amount)
+    })
+
+    const chartData = Array.from(chartDataMap.entries()).map(([name, total]) => ({ name, total }))
 
     // 4. Total Seats
     const { count: totalSeats } = await supabase
@@ -121,20 +133,25 @@ export default async function AdminDashboardPage() {
                         <TrendingUp className="h-6 w-6 text-indigo-600" />
                     </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4">
-                        <p className="text-xs text-slate-500 mb-1">This Month</p>
-                        <p className="text-2xl font-bold text-slate-900">₹{monthlyRevenue.toLocaleString()}</p>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-1 space-y-4">
+                        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4">
+                            <p className="text-xs text-slate-500 mb-1">This Month</p>
+                            <p className="text-2xl font-bold text-slate-900">₹{monthlyRevenue.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4">
+                            <p className="text-xs text-slate-500 mb-1">Avg per Student</p>
+                            <p className="text-2xl font-bold text-slate-900">
+                                ₹{activeBookings ? Math.round(monthlyRevenue / activeBookings).toLocaleString() : 0}
+                            </p>
+                        </div>
+                        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4">
+                            <p className="text-xs text-slate-500 mb-1">Pending</p>
+                            <p className="text-2xl font-bold text-amber-600">{pending || 0}</p>
+                        </div>
                     </div>
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4">
-                        <p className="text-xs text-slate-500 mb-1">Avg per Student</p>
-                        <p className="text-2xl font-bold text-slate-900">
-                            ₹{activeBookings ? Math.round(monthlyRevenue / activeBookings).toLocaleString() : 0}
-                        </p>
-                    </div>
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4">
-                        <p className="text-xs text-slate-500 mb-1">Pending</p>
-                        <p className="text-2xl font-bold text-amber-600">{pending || 0}</p>
+                    <div className="lg:col-span-2 bg-white/60 backdrop-blur-sm rounded-xl p-4 min-h-[300px]">
+                        <RevenueChart data={chartData} />
                     </div>
                 </div>
             </div>
