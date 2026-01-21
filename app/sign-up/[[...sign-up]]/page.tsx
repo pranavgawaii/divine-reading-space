@@ -57,8 +57,6 @@ export default function SignUpPage() {
                                     footer: "hidden",
                                     navbar: "hidden",
 
-                                    navbar: "hidden",
-
                                     // Use specific styling for the divider to prevent overlap
                                     dividerRow: "my-4 md:my-6 relative w-full max-w-[85%] mx-auto bg-transparent",
                                     dividerLine: "bg-zinc-800 h-[1px]",
