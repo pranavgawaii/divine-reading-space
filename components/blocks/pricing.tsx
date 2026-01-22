@@ -147,7 +147,6 @@ export function Pricing({
                                                 minimumFractionDigits: 0,
                                                 maximumFractionDigits: 0,
                                             }}
-                                            formatter={(value) => `${value}`} // INR handled by locale or custom symbol
                                             transformTiming={{
                                                 duration: 500,
                                                 easing: "ease-out",
