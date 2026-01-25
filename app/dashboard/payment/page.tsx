@@ -134,17 +134,12 @@ export default function PaymentPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8 text-center overflow-hidden">
                 <h3 className="font-bold text-gray-900 text-lg mb-6 tracking-tight">Scan & Pay via UPI</h3>
 
-                <div className="w-56 h-56 relative overflow-hidden rounded-2xl border-2 border-slate-100 shadow-xl mx-auto mb-8 bg-black group">
+                <div className="w-64 h-64 relative overflow-hidden rounded-2xl border border-slate-200 shadow-lg mx-auto mb-8 bg-black">
                     <img
                         src="/images/payment-qr.jpg"
                         alt="Payment QR"
-                        className="absolute w-[240%] max-w-none left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2 transition-transform group-hover:scale-105 duration-500"
+                        className="absolute w-[160%] max-w-none left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2"
                     />
-                    {/* Decorative corners */}
-                    <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-white/30 rounded-tl-sm"></div>
-                    <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-white/30 rounded-tr-sm"></div>
-                    <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-white/30 rounded-bl-sm"></div>
-                    <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-white/30 rounded-br-sm"></div>
                 </div>
 
                 <div className="space-y-3">

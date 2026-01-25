@@ -204,11 +204,11 @@ export default function BookSeatPage() {
                                 <h3 className="font-display font-medium text-foreground mb-1">Scan to Pay</h3>
                                 <p className="text-[10px] font-mono text-muted-foreground mb-6 uppercase tracking-wider">Gawai Pranav Ganesh</p>
 
-                                <div className="w-40 h-40 relative overflow-hidden rounded-sm border border-border shadow-sm mx-auto mb-6 bg-black">
+                                <div className="w-48 h-48 relative overflow-hidden rounded-sm border border-border shadow-md mx-auto mb-6 bg-black">
                                     <img
                                         src="/images/payment-qr.jpg"
                                         alt="Payment QR"
-                                        className="absolute w-[240%] max-w-none left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2"
+                                        className="absolute w-[160%] max-w-none left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2"
                                     />
                                 </div>
 
