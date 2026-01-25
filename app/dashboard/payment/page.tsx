@@ -131,20 +131,28 @@ export default function PaymentPage() {
             </div>
 
             {/* QR Code Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8 text-center">
-                <h3 className="font-bold text-gray-900 text-lg mb-6">Scan & Pay via UPI</h3>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8 text-center overflow-hidden">
+                <h3 className="font-bold text-gray-900 text-lg mb-6 tracking-tight">Scan & Pay via UPI</h3>
 
-                <div className="w-48 h-48 bg-gray-100 mx-auto rounded-xl border border-dashed border-gray-300 flex items-center justify-center mb-6">
-                    {/* Placeholder for QR Code */}
-                    <div className="text-gray-400 text-sm">
-                        [Simulated UPI QR]
-                    </div>
+                <div className="w-56 h-56 relative overflow-hidden rounded-2xl border-2 border-slate-100 shadow-xl mx-auto mb-8 bg-black group">
+                    <img
+                        src="/images/payment-qr.jpg"
+                        alt="Payment QR"
+                        className="absolute w-[240%] max-w-none left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2 transition-transform group-hover:scale-105 duration-500"
+                    />
+                    {/* Decorative corners */}
+                    <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-white/30 rounded-tl-sm"></div>
+                    <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-white/30 rounded-tr-sm"></div>
+                    <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-white/30 rounded-bl-sm"></div>
+                    <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-white/30 rounded-br-sm"></div>
                 </div>
 
-                <div className="space-y-2">
-                    <p className="font-mono text-gray-600 bg-gray-50 inline-block px-3 py-1 rounded">divine@paytm</p>
-                    <p className="text-gray-500 text-sm">Amount: ₹1,000</p>
-                    <p className="text-xs text-gray-400 mt-4">Pay using GPay, PhonePe, Paytm, or any UPI app</p>
+                <div className="space-y-3">
+                    <p className="font-display font-medium text-slate-900 text-lg">Gawai Pranav Ganesh</p>
+                    <div className="flex items-center justify-center gap-2">
+                        <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <p className="text-sm text-slate-500 font-light">Verified Merchant Account</p>
+                    </div>
                 </div>
             </div>
 

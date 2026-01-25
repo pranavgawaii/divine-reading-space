@@ -202,13 +202,13 @@ export default function BookSeatPage() {
                             {/* Left: QR Section */}
                             <div className="bg-secondary/5 p-8 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-border md:w-1/2">
                                 <h3 className="font-display font-medium text-foreground mb-1">Scan to Pay</h3>
-                                <p className="text-[10px] font-mono text-muted-foreground mb-6 uppercase tracking-wider">UPI: DIVINE@UPI</p>
+                                <p className="text-[10px] font-mono text-muted-foreground mb-6 uppercase tracking-wider">Gawai Pranav Ganesh</p>
 
-                                <div className="bg-white p-2 rounded-sm mb-4">
+                                <div className="w-40 h-40 relative overflow-hidden rounded-sm border border-border shadow-sm mx-auto mb-6 bg-black">
                                     <img
-                                        src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=divine@upi&pn=DivineReadingSpace&am=1000&cu=INR"
+                                        src="/images/payment-qr.jpg"
                                         alt="Payment QR"
-                                        className="w-32 h-32"
+                                        className="absolute w-[240%] max-w-none left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2"
                                     />
                                 </div>
 
