@@ -51,9 +51,9 @@ export function DashboardShell({ children, userProfile }: DashboardShellProps) {
                 <div className="p-6 border-t border-zinc-800 bg-zinc-950">
                     <div className="flex items-center gap-3 p-3 rounded-sm bg-zinc-900 border border-zinc-800">
                         <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
-                        <div className="overflow-hidden">
-                            <p className="text-sm font-medium text-white truncate">{userProfile.fullName}</p>
-                            <p className="text-xs font-mono text-zinc-500 truncate">{userProfile.email}</p>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white line-clamp-1">{userProfile.fullName}</p>
+                            <p className="text-xs font-mono text-zinc-500 line-clamp-1 break-all">{userProfile.email}</p>
                         </div>
                     </div>
                 </div>
@@ -108,9 +108,9 @@ export function DashboardShell({ children, userProfile }: DashboardShellProps) {
                             <div className="p-6 border-t border-zinc-800 bg-zinc-950">
                                 <div className="flex items-center gap-3 p-3 rounded-sm bg-zinc-900 border border-zinc-800">
                                     <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
-                                    <div className="overflow-hidden">
-                                        <p className="text-sm font-medium text-white truncate">{userProfile.fullName}</p>
-                                        <p className="text-xs font-mono text-zinc-500 truncate">{userProfile.email}</p>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-white line-clamp-1">{userProfile.fullName}</p>
+                                        <p className="text-xs font-mono text-zinc-500 line-clamp-1 break-all">{userProfile.email}</p>
                                     </div>
                                 </div>
                             </div>
